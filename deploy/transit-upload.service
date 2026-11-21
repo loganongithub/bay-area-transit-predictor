@@ -1,0 +1,8 @@
+[Unit]
+Description=Move finished feed snapshots to S3
+
+[Service]
+Type=oneshot
+User=transitlog
+EnvironmentFile=/etc/transit-logger.env
+ExecStart=/opt/transit-logger/upload.sh

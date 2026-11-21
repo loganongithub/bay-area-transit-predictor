@@ -1,0 +1,18 @@
+[Unit]
+Description=GTFS-RT raw feed logger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=transitlog
+WorkingDirectory=/opt/transit-logger
+EnvironmentFile=/etc/transit-logger.env
+Environment=DATA_DIR=/var/lib/transit-logger
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/transit-logger/logger.py
+# Crash, reboot, OOM: always come back.
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
