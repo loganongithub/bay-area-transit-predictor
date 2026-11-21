@@ -10,7 +10,7 @@ About 45 minutes the first time. Do the steps in order.
    511sfbaydeveloperresources@googlegroups.com to ask for a higher rate limit.
    Say what the project is and the rate you want (for example, 1 request per
    30 s per feed). **Don't put the key in the email.**
-2. **GitHub.** Create a public repo named `transit-predictor` (any name works)
+2. **GitHub.** Create a public repo (this one is `loganongithub/bay-area-transit-eta`)
    and push this folder. The server clones from it. `.gitignore` already
    blocks `.env`.
 3. **AWS account.** https://aws.amazon.com. It needs a credit card. Right
@@ -63,7 +63,7 @@ Manager → Connect**. If Connect is greyed out, wait a few more minutes.
 
 ```bash
 sudo dnf install -y git
-cd ~ && git clone https://github.com/<you>/transit-predictor.git && cd transit-predictor
+cd ~ && git clone https://github.com/loganongithub/bay-area-transit-eta.git && cd bay-area-transit-eta
 sudo bash deploy/setup.sh          # first run creates /etc/transit-logger.env and stops
 sudo nano /etc/transit-logger.env  # set API_511_KEY, S3_BUCKET, HEALTHCHECK_URL
 sudo bash deploy/setup.sh          # second run starts everything
@@ -93,7 +93,7 @@ logger came back up with `systemctl status transit-logger`.
 ## Updating later
 
 ```bash
-cd ~/transit-predictor && git pull && sudo bash deploy/setup.sh
+cd ~/bay-area-transit-eta && git pull && sudo bash deploy/setup.sh
 ```
 
 ## Daily health check (30 seconds)
