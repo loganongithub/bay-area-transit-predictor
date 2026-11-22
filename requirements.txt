@@ -1,0 +1,4 @@
+# Dev/analysis tools only. The logger itself needs nothing beyond the stdlib.
+gtfs-realtime-bindings==3.0.0
+protobuf==7.36.2
+tzdata==2026.6

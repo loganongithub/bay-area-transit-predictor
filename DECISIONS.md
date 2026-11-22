@@ -16,3 +16,9 @@ One line per decision: what was chosen, over what, and why.
 - 2026-11-21 EC2 instance role instead of access keys on the server: no long-lived secret to leak; permissions limited to PutObject on one bucket prefix.
 - 2026-11-21 Session Manager instead of SSH, no inbound ports: nothing on the server is reachable from the internet, and no key files to manage on Windows.
 - 2026-11-21 t4g.micro (ARM) over t3.micro: cheaper for the same job; the logger has no native dependencies, so ARM doesn't matter.
+
+## Tooling
+
+- 2026-11-22 Inspector uses Google's official `gtfs-realtime-bindings` instead of a hand-written decoder: the schema is standard and maintained; hand-decoding protobuf adds bugs and no insight.
+- 2026-11-22 Analysis dependencies are pinned in requirements.txt, and the logger stays stdlib-only: a library upgrade on the server can never break data collection.
+- 2026-11-22 Inspector prints Bay Area local time, while files are stored in UTC: humans reason about "the 8:15 bus"; storage avoids daylight-saving ambiguity.

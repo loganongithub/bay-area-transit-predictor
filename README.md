@@ -17,3 +17,12 @@ Run locally (BART only without a key):
 cp .env.example .env   # add API_511_KEY for AC Transit
 python logger/logger.py
 ```
+
+Inspect snapshots (needs the dev dependencies):
+
+```
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python tools/inspect_feed.py trips data/raw
+.venv\Scripts\python tools/inspect_feed.py trip <trip_id> data/raw --stop <stop_id>
+```
