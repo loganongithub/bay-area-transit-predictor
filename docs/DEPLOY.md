@@ -1,102 +1,109 @@
 # Phase 0: run the logger on EC2
 
-Goal: the logger runs 24/7 on a small EC2 instance, and snapshots land in S3.
-About 45 minutes the first time. Do the steps in order.
+Goal: the logger runs 24/7 on a small EC2 instance and snapshots land in S3.
+Everything after account setup is scripted from your laptop. No console
+clicking, no SSH.
 
-## 0. Accounts (in this order)
+## 1. Accounts and tools (you, in this order)
 
-1. **511.org API token.** Request it first, because approval can take a while:
-   https://511.org/open-data/token. Then email
-   511sfbaydeveloperresources@googlegroups.com to ask for a higher rate limit.
-   Say what the project is and the rate you want (for example, 1 request per
-   30 s per feed). **Don't put the key in the email.**
-2. **GitHub.** Create a public repo (this one is `loganongithub/bay-area-transit-predictor`)
-   and push this folder. The server clones from it. `.gitignore` already
-   blocks `.env`.
-3. **AWS account.** https://aws.amazon.com. It needs a credit card. Right
-   after signup:
-   - Turn on MFA for the root user (IAM → Security credentials).
-   - Create a budget: Billing → Budgets → "Monthly cost budget" at **$10**
-     with an email alert. This is your safety net.
-   - Stop using root for daily work. Create an admin login with IAM Identity
-     Center, or an IAM user with MFA.
-   - Use region **us-west-2 (Oregon)** for everything.
-4. **healthchecks.io** (optional, free, recommended). Create a check with
-   period 5 min and grace 15 min, then copy its ping URL. It emails you if
-   logging stops. Without it, an outage can go unnoticed for weeks.
+1. **511.org API token.** Request one at https://511.org/open-data/token. When
+   it arrives, copy `.env.example` to `.env` and set `API_511_KEY`.
+   - For a higher rate limit, join https://groups.google.com/g/511sfbaydeveloperresources
+     first, then email the group. Posts from non-members bounce.
+2. **AWS account.** Sign up at https://aws.amazon.com (needs a credit card).
+   Then, in the console:
+   - Turn on MFA for the root user: account menu → Security credentials.
+   - Create a day-to-day admin login. IAM → Users → Create user, tick
+     "Provide user access to the AWS Management Console", attach
+     `AdministratorAccess`, then turn on MFA for that user. Use this user from
+     now on, not root.
+3. **AWS CLI on Windows.** Install it:
+   ```powershell
+   winget install -e --id Amazon.AWSCLI
+   ```
+   Open a new terminal, then sign in as the admin user:
+   ```powershell
+   aws login
+   ```
+   If your CLI version has no `aws login`, use the fallback: create an access
+   key for the admin user (IAM → user → Security credentials → Create access
+   key → CLI), then run `aws configure` and paste it in. Never put that key in
+   the repo. Check it worked: `aws sts get-caller-identity`.
+4. **healthchecks.io** (optional, free). Create a check with a 5-minute period
+   and 15-minute grace, then copy its ping URL. It emails you if logging stops.
 
-## 1. S3 bucket
+## 2. Build the server (one command)
 
-S3 → Create bucket. Name it something like `<yourname>-transit-raw`
-(bucket names are global). Region us-west-2. Leave "Block all public access"
-**on**. Keep the other defaults.
+Windows blocks local scripts by default, so each command below uses
+`-ExecutionPolicy Bypass` for that run only. It doesn't change any system
+setting.
 
-## 2. IAM role for the server
-
-This gives the server permission to write to the bucket without storing any
-access keys on it.
-
-IAM → Roles → Create role → Trusted entity: **AWS service → EC2**.
-- Attach the managed policy **AmazonSSMManagedInstanceCore**. It lets you log
-  in through the browser without SSH.
-- Finish creating the role and name it `transit-logger-role`.
-- Open the role, go to Add permissions → Create inline policy → JSON, and
-  paste `deploy/iam-s3-policy.json` with your bucket name filled in. Name it
-  `write-raw-snapshots`.
-
-## 3. Launch the instance
-
-EC2 → Launch instance:
-- Name: `transit-logger`
-- AMI: **Amazon Linux 2023**, architecture **64-bit (Arm)**
-- Instance type: **t4g.micro** (about $6/month; free-tier credits cover it at first)
-- Key pair: **Proceed without a key pair** (you'll use Session Manager)
-- Network: create a security group with **no inbound rules** (remove the
-  default SSH rule). Nothing on the internet can connect in.
-- Storage: 16 GiB gp3
-- Advanced details → IAM instance profile: `transit-logger-role`
-
-Launch it, wait about 3 minutes, then go to Instance → **Connect → Session
-Manager → Connect**. If Connect is greyed out, wait a few more minutes.
-
-## 4. Install the logger (in the Session Manager shell)
-
-```bash
-sudo dnf install -y git
-cd ~ && git clone https://github.com/loganongithub/bay-area-transit-predictor.git && cd bay-area-transit-predictor
-sudo bash deploy/setup.sh          # first run creates /etc/transit-logger.env and stops
-sudo nano /etc/transit-logger.env  # set API_511_KEY, S3_BUCKET, HEALTHCHECK_URL
-sudo bash deploy/setup.sh          # second run starts everything
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\provision.ps1 -Bucket <yourname>-transit-raw -AlertEmail <your email> -HealthcheckUrl <ping url>
 ```
 
-## 5. Verify (do not skip)
+What it creates in us-west-2. It's safe to re-run, because existing pieces are
+reused:
 
-```bash
-journalctl -u transit-logger -n 30        # "saved N bytes" lines, no repeated warnings
-sudo systemctl start transit-upload.service && journalctl -u transit-upload -n 20
-aws s3 ls s3://<bucket>/raw/ --recursive | tail
+| Resource | Why |
+|---|---|
+| S3 bucket, all public access blocked | The archive |
+| IAM role `transit-logger-role` | Lets the server write to `raw/` in that bucket, read its 511 key, and use Session Manager. Nothing else. |
+| Security group `transit-logger`, no inbound rules | Nothing on the internet can connect to the server |
+| EC2 `t4g.micro`, Amazon Linux 2023 ARM, 16 GB disk | Runs `user-data.sh` on first boot: clones this repo, writes config, runs `setup.sh` |
+| Budget `transit-monthly` | Emails you when spending passes $8 of a $10 month |
+
+Cost: about $6/month for the instance, about $3.60/month for its public IPv4
+address, and cents for S3. New-account credits cover this at first.
+
+## 3. Add the 511 key
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\set-511-key.ps1
 ```
 
-Next, check the AC Transit agency code. If the logs show HTTP errors for the
-511 feeds, run:
+This stores the key from `.env` in SSM Parameter Store, encrypted. The server
+copies it into its config and restarts the logger. Re-run it whenever the
+key changes.
 
-```bash
-curl -s "https://api.511.org/transit/gtfsoperators?api_key=$KEY&format=json" | head -c 2000
+## 4. Verify (do not skip)
+
+Wait about 5 minutes after provisioning, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\status.ps1 -Bucket <yourname>-transit-raw
 ```
 
-Find AC Transit's `Id` in the output, set `AGENCY_511` to it, and run
-`sudo systemctl restart transit-logger`.
+You should see:
+- `active` twice: the logger and the upload timer.
+- Recent `saved N bytes` lines for `bart_tripupdates`. After step 3 you should
+  also see them for `511_ac_tripupdates` and `511_ac_vehiclepositions`.
+- Today's S3 counts going up. The first upload runs about 10 minutes after
+  boot.
 
-Finally, test the restart behaviour: `sudo reboot`, reconnect, and check the
-logger came back up with `systemctl status transit-logger`.
+If the 511 feeds show HTTP errors, the AC Transit agency code may not be
+`AC`. Look it up:
+`https://api.511.org/transit/gtfsoperators?api_key=<key>&format=json`, or ask
+Claude to.
 
-## Updating later
+Reboot test: `aws ec2 reboot-instances --instance-ids <id> --region us-west-2`.
+Run `status.ps1` again a few minutes later. Everything should be `active`
+again without you touching anything.
+
+## Logging in to the server (rarely needed)
+
+EC2 console → instance → Connect → Session Manager. The bootstrap log is at
+`/var/log/transit-bootstrap.log`.
+
+## Updating the logger
+
+Push the change to GitHub, then on the server (Session Manager):
 
 ```bash
-cd ~/bay-area-transit-predictor && git pull && sudo bash deploy/setup.sh
+cd /opt/src && sudo git pull && sudo bash deploy/setup.sh
 ```
 
 ## Daily health check (30 seconds)
 
-Check that healthchecks.io is green. Each day folder in S3 should grow at
-roughly the same rate every day. A sudden drop means feed or logger trouble.
+Check that healthchecks.io is green, or run `status.ps1`. Day-to-day snapshot
+counts should be about the same. A sudden drop means feed or logger trouble.

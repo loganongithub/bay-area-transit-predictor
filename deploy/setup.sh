@@ -12,6 +12,7 @@ install -d -o transitlog -g transitlog /var/lib/transit-logger
 install -d /opt/transit-logger
 install -m 0644 logger/logger.py /opt/transit-logger/logger.py
 install -m 0755 deploy/upload.sh /opt/transit-logger/upload.sh
+install -m 0700 deploy/load-511-key.sh /opt/transit-logger/load-511-key.sh
 
 if [ ! -f /etc/transit-logger.env ]; then
   install -m 0600 -o transitlog -g transitlog .env.example /etc/transit-logger.env

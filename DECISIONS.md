@@ -16,6 +16,11 @@ One line per decision: what was chosen, over what, and why.
 - 2026-11-21 EC2 instance role instead of access keys on the server: no long-lived secret to leak; permissions limited to PutObject on one bucket prefix.
 - 2026-11-21 Session Manager instead of SSH, no inbound ports: nothing on the server is reachable from the internet, and no key files to manage on Windows.
 - 2026-11-21 t4g.micro (ARM) over t3.micro: cheaper for the same job; the logger has no native dependencies, so ARM doesn't matter.
+- 2026-11-22 Provision with AWS CLI scripts instead of console clicking: reproducible, re-runnable, and the script doubles as documentation of every resource; full Terraform is overkill for five resources.
+- 2026-11-22 EC2 user data bootstraps the server on first boot (clone repo, write config, run setup.sh): a replacement server is one command, not a manual checklist.
+- 2026-11-22 511 key lives in SSM Parameter Store (SecureString), pulled onto the server by a script: never in git, user data, or shell history; rotating it is one command.
+- 2026-11-22 Remote health checks via SSM send-command: inspect the server from the laptop without opening any inbound port.
+- 2026-11-22 $10/month AWS Budget alert created by the provisioning script: catches runaway costs early on a student budget.
 
 ## Tooling
 
