@@ -21,6 +21,8 @@ One line per decision: what was chosen, over what, and why.
 - 2026-11-22 511 key lives in SSM Parameter Store (SecureString), pulled onto the server by a script: never in git, user data, or shell history; rotating it is one command.
 - 2026-11-22 Remote health checks via SSM send-command: inspect the server from the laptop without opening any inbound port.
 - 2026-11-22 $10/month AWS Budget alert created by the provisioning script: catches runaway costs early on a student budget.
+- 2026-11-23 Region us-east-2 (Ohio), not us-west-2: this AWS free-plan account's organization policy denies every other region; latency to the feeds is irrelevant for 30 s polling.
+- 2026-11-23 RISK: free-plan account access ends 2027-05-22 (or when $100 credits run out). Before then, upgrade the plan or copy the S3 archive to a paid account, or the logger stops and the archive may become inaccessible.
 
 ## Tooling
 

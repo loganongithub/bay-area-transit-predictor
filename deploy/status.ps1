@@ -7,7 +7,7 @@
 #>
 param(
     [string]$Bucket = "",
-    [string]$Region = "us-west-2"
+    [string]$Region = "us-east-2"
 )
 
 $ErrorActionPreference = "Continue"
@@ -27,7 +27,7 @@ if ($ping -ne "Online") {
 # Commands run on the server. No quotes inside: PowerShell 5.1 mangles them.
 $cmdId = aws ssm send-command --region $Region --instance-ids $instanceId `
     --document-name AWS-RunShellScript `
-    --parameters "commands=systemctl is-active transit-logger transit-upload.timer,journalctl -u transit-logger -n 15 --no-pager,tail -n 5 /var/log/transit-bootstrap.log,df -h /" `
+    --parameters "commands=systemctl is-active transit-logger transit-upload.timer,journalctl -u transit-logger -n 15 --no-pager | iconv -c -t ascii,tail -n 5 /var/log/transit-bootstrap.log | iconv -c -t ascii,df -h /" `
     --query Command.CommandId --output text
 Start-Sleep -Seconds 6
 Write-Host "`n--- on the server ---"

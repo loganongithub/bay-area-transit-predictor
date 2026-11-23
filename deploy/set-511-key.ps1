@@ -4,7 +4,7 @@
   then tell the server to load it and restart the logger.
   The key never goes into git, user data, or a shell you type into.
 #>
-param([string]$Region = "us-west-2")
+param([string]$Region = "us-east-2")
 
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)

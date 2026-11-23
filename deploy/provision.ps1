@@ -11,7 +11,7 @@
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Bucket,
-    [string]$Region = "us-west-2",
+    [string]$Region = "us-east-2",
     [string]$InstanceType = "t4g.micro",
     [string]$HealthcheckUrl = "",
     [string]$AlertEmail = ""
@@ -89,7 +89,7 @@ if (-not (Test-Aws iam get-instance-profile --instance-profile-name $Role)) {
 
 # ---------------------------------------------------------------- network
 Step "Security group (no inbound rules)"
-$vpc = Invoke-Aws ec2 describe-vpcs --region $Region --filters Name=isDefault,Values=true `
+$vpc = Invoke-Aws ec2 describe-vpcs --region $Region --filters "Name=isDefault,Values=true" `
     --query "Vpcs[0].VpcId" --output text
 if ($vpc -eq "None") { throw "No default VPC in $Region. Create one: aws ec2 create-default-vpc --region $Region" }
 $sg = Invoke-Aws ec2 describe-security-groups --region $Region `

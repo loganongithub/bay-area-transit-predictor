@@ -42,7 +42,7 @@ setting.
 powershell -ExecutionPolicy Bypass -File .\deploy\provision.ps1 -Bucket <yourname>-transit-raw -AlertEmail <your email> -HealthcheckUrl <ping url>
 ```
 
-What it creates in us-west-2. It's safe to re-run, because existing pieces are
+What it creates in us-east-2 (Ohio; this AWS account only allows that region). It's safe to re-run, because existing pieces are
 reused:
 
 | Resource | Why |
@@ -86,7 +86,7 @@ If the 511 feeds show HTTP errors, the AC Transit agency code may not be
 `https://api.511.org/transit/gtfsoperators?api_key=<key>&format=json`, or ask
 Claude to.
 
-Reboot test: `aws ec2 reboot-instances --instance-ids <id> --region us-west-2`.
+Reboot test: `aws ec2 reboot-instances --instance-ids <id> --region us-east-2`.
 Run `status.ps1` again a few minutes later. Everything should be `active`
 again without you touching anything.
 
