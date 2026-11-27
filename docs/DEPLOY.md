@@ -10,6 +10,10 @@ clicking, no SSH.
    it arrives, copy `.env.example` to `.env` and set `API_511_KEY`.
    - For a higher rate limit, join https://groups.google.com/g/511sfbaydeveloperresources
      first, then email the group. Posts from non-members bounce.
+   - **AC Transit API token** (the main AC Transit source; it has no 60/hour
+     cap). Register at https://api.actransit.org/transit/ and set
+     `API_ACT_TOKEN` in `.env`. A new token can fail intermittently for its
+     first hour.
 2. **AWS account.** Sign up at https://aws.amazon.com (needs a credit card).
    Then, in the console:
    - Turn on MFA for the root user: account menu → Security credentials.
@@ -51,20 +55,20 @@ reused:
 | IAM role `transit-logger-role` | Lets the server write to `raw/` in that bucket, read its 511 key, and use Session Manager. Nothing else. |
 | Security group `transit-logger`, no inbound rules | Nothing on the internet can connect to the server |
 | EC2 `t4g.micro`, Amazon Linux 2023 ARM, 16 GB disk | Runs `user-data.sh` on first boot: clones this repo, writes config, runs `setup.sh` |
-| Budget `transit-monthly` | Emails you when spending passes $8 of a $10 month |
+| Budget `transit-monthly` | Emails you when monthly spending passes the budget (`-BudgetUsd`, default $15; this account uses $11) |
 
 Cost: about $6/month for the instance, about $3.60/month for its public IPv4
 address, and cents for S3. New-account credits cover this at first.
 
-## 3. Add the 511 key
+## 3. Add the API keys
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\deploy\set-511-key.ps1
+powershell -ExecutionPolicy Bypass -File .\deploy\set-keys.ps1
 ```
 
-This stores the key from `.env` in SSM Parameter Store, encrypted. The server
-copies it into its config and restarts the logger. Re-run it whenever the
-key changes.
+This stores `API_511_KEY` and `API_ACT_TOKEN` from `.env` in SSM Parameter
+Store, encrypted. The server copies them into its config and restarts the
+logger. Re-run it whenever a key changes.
 
 ## 4. Verify (do not skip)
 

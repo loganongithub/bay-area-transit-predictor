@@ -53,7 +53,25 @@ def build_feeds():
                 "interval": interval_511,
             })
     else:
-        log.warning("API_511_KEY not set: AC Transit feeds disabled, logging BART only")
+        log.warning("API_511_KEY not set: 511 AC Transit feeds disabled")
+
+    # AC Transit's own API: the original source 511 republishes, with no
+    # 60 req/hour cap, so it gets the fine-grained polling. 511 stays as backup.
+    act_token = os.environ.get("API_ACT_TOKEN", "").strip()
+    interval_act = float(os.environ.get("INTERVAL_ACT_S", "30"))
+    if act_token:
+        base = "https://api.actransit.org/transit/gtfsrt"
+        for i, kind in enumerate(("tripupdates", "vehicles")):
+            feeds.append({
+                "name": "act_%s" % kind,
+                "url": "%s/%s?token=%s" % (base, kind, act_token),
+                "interval": interval_act,
+                # Half an interval apart so we never send AC Transit two
+                # requests at once.
+                "offset": i * interval_act / 2,
+            })
+    else:
+        log.warning("API_ACT_TOKEN not set: AC Transit API feeds disabled")
 
     interval_bart = float(os.environ.get("INTERVAL_BART_S", "30"))
     feeds.append({
@@ -65,9 +83,12 @@ def build_feeds():
 
 
 def redact(text):
-    """Strip the API key out of anything we log."""
-    key = os.environ.get("API_511_KEY", "")
-    return text.replace(key, "***") if key else text
+    """Strip API keys out of anything we log."""
+    for var in ("API_511_KEY", "API_ACT_TOKEN"):
+        key = os.environ.get(var, "").strip()
+        if key:
+            text = text.replace(key, "***")
+    return text
 
 
 def fetch(url, timeout):
@@ -153,7 +174,7 @@ def main():
     # Stagger start times so feeds sharing a rate limit don't fire together.
     now = time.monotonic()
     for i, f in enumerate(feeds):
-        f["next"] = now + i * 2.0
+        f["next"] = now + f.get("offset", i * 2.0)
 
     while not stopping["flag"]:
         f = min(feeds, key=lambda x: x["next"])

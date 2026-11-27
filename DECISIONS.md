@@ -23,6 +23,10 @@ One line per decision: what was chosen, over what, and why.
 - 2026-11-22 $10/month AWS Budget alert created by the provisioning script: catches runaway costs early on a student budget.
 - 2026-11-23 Region us-east-2 (Ohio), not us-west-2: this AWS free-plan account's organization policy denies every other region; latency to the feeds is irrelevant for 30 s polling.
 - 2026-11-23 RISK: free-plan account access ends 2027-05-22 (or when $100 credits run out). Before then, upgrade the plan or copy the S3 archive to a paid account, or the logger stops and the archive may become inaccessible.
+- 2026-11-26 AC Transit's own API (api.actransit.org) at 30 s is the primary AC Transit source, with 511 kept at 150 s as backup: 511 never raised its 60 req/hour cap, and 150 s vehicle positions would make ground-truth arrival times blurrier than the Caltrans accuracy band near arrival. It's also the original source 511 republishes.
+- 2026-11-26 The two AC Transit API feeds are offset by half an interval (15 s): never two simultaneous requests to an API with no published rate limit.
+- 2026-11-26 Keep logging 511 alongside the AC Transit API: it costs nothing, covers outages of either source, and lets us check the two feeds agree.
+- 2026-11-26 Diagnosed intermittent 401s from the new AC Transit token with a paced 1 req/min test over an hour (53/53 OK): the token was too new and still propagating, not rate limiting.
 
 ## Tooling
 

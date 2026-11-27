@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   Build the Phase 0 logger server from your laptop: S3 bucket, IAM role,
-  firewall, EC2 instance, and optionally a $10 budget alert.
+  firewall, EC2 instance, and optionally a monthly budget alert (default $15).
 
 .EXAMPLE
   .\deploy\provision.ps1 -Bucket yourname-transit-raw -AlertEmail you@example.com
@@ -14,7 +14,8 @@ param(
     [string]$Region = "us-east-2",
     [string]$InstanceType = "t4g.micro",
     [string]$HealthcheckUrl = "",
-    [string]$AlertEmail = ""
+    [string]$AlertEmail = "",
+    [int]$BudgetUsd = 15
 )
 
 # Native-command errors are checked through exit codes, not PowerShell errors.
@@ -141,12 +142,12 @@ if ($existing) {
 
 # ---------------------------------------------------------------- budget
 if ($AlertEmail) {
-    Step "Budget alert: email $AlertEmail when monthly spend passes 80% of `$10"
+    Step "Budget alert: email $AlertEmail when monthly spend passes `$$BudgetUsd"
     if (Test-Aws budgets describe-budget --account-id $account --budget-name transit-monthly) {
         Write-Host "exists"
     } else {
-        $budget = Write-JsonFile "budget.json" '{"BudgetName":"transit-monthly","BudgetLimit":{"Amount":"10","Unit":"USD"},"TimeUnit":"MONTHLY","BudgetType":"COST"}'
-        $notif = Write-JsonFile "notif.json" ('[{"Notification":{"NotificationType":"ACTUAL","ComparisonOperator":"GREATER_THAN","Threshold":80,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"' + $AlertEmail + '"}]}]')
+        $budget = Write-JsonFile "budget.json" ('{"BudgetName":"transit-monthly","BudgetLimit":{"Amount":"' + $BudgetUsd + '","Unit":"USD"},"TimeUnit":"MONTHLY","BudgetType":"COST"}')
+        $notif = Write-JsonFile "notif.json" ('[{"Notification":{"NotificationType":"ACTUAL","ComparisonOperator":"GREATER_THAN","Threshold":100,"ThresholdType":"PERCENTAGE"},"Subscribers":[{"SubscriptionType":"EMAIL","Address":"' + $AlertEmail + '"}]}]')
         Invoke-Aws budgets create-budget --account-id $account --budget $budget `
             --notifications-with-subscribers $notif | Out-Null
         Write-Host "created"
@@ -157,5 +158,5 @@ Step "Done"
 Write-Host "Instance: $instanceId"
 Write-Host "It installs itself over the next ~3 minutes. Then run:"
 Write-Host "  .\deploy\status.ps1"
-Write-Host "Once you have a 511 key in .env:"
+Write-Host "Once your API keys are in .env:"
 Write-Host "  .\deploy\set-511-key.ps1"

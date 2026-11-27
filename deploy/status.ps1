@@ -37,7 +37,7 @@ aws ssm get-command-invocation --region $Region --command-id $cmdId --instance-i
 if ($Bucket) {
     $today = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
     Write-Host "`n--- S3: today's ($today UTC) snapshot counts ---"
-    foreach ($feed in "bart_tripupdates", "511_ac_tripupdates", "511_ac_vehiclepositions") {
+    foreach ($feed in "bart_tripupdates", "act_tripupdates", "act_vehicles", "511_ac_tripupdates", "511_ac_vehiclepositions") {
         $n = aws s3api list-objects-v2 --bucket $Bucket --prefix "raw/$feed/$today/" `
             --query "length(Contents || ``[]``)" --output text
         Write-Host ("{0,-26} {1}" -f $feed, $n)
