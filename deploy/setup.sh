@@ -11,6 +11,7 @@ id transitlog >/dev/null 2>&1 || useradd --system --no-create-home --shell /sbin
 install -d -o transitlog -g transitlog /var/lib/transit-logger
 install -d /opt/transit-logger
 install -m 0644 logger/logger.py /opt/transit-logger/logger.py
+install -m 0644 logger/fetch_static.py /opt/transit-logger/fetch_static.py
 install -m 0755 deploy/upload.sh /opt/transit-logger/upload.sh
 install -m 0700 deploy/load-keys.sh /opt/transit-logger/load-keys.sh
 
@@ -23,8 +24,10 @@ fi
 install -m 0644 deploy/transit-logger.service /etc/systemd/system/
 install -m 0644 deploy/transit-upload.service /etc/systemd/system/
 install -m 0644 deploy/transit-upload.timer /etc/systemd/system/
+install -m 0644 deploy/transit-static.service /etc/systemd/system/
+install -m 0644 deploy/transit-static.timer /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now transit-logger.service transit-upload.timer
+systemctl enable --now transit-logger.service transit-upload.timer transit-static.timer
 systemctl restart transit-logger.service
 
 echo ">>> Running. Check with: journalctl -u transit-logger -f"

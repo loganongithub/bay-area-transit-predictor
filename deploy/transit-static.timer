@@ -1,0 +1,12 @@
+[Unit]
+Description=Check static GTFS schedules daily
+
+[Timer]
+# 11:00 UTC = 3-4 am Bay Area time, when nothing much is running.
+OnCalendar=*-*-* 11:00:00
+OnBootSec=5min
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

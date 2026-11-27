@@ -27,6 +27,10 @@ One line per decision: what was chosen, over what, and why.
 - 2026-11-26 The two AC Transit API feeds are offset by half an interval (15 s): never two simultaneous requests to an API with no published rate limit.
 - 2026-11-26 Keep logging 511 alongside the AC Transit API: it costs nothing, covers outages of either source, and lets us check the two feeds agree.
 - 2026-11-26 Diagnosed intermittent 401s from the new AC Transit token with a paced 1 req/min test over an hour (53/53 OK): the token was too new and still propagating, not rate limiting.
+- 2026-11-27 Archive all three static GTFS schedules (AC Transit API, 511 AC, BART) separately: AC Transit's API and 511 share trip IDs but use completely different stop IDs (0 of 1,409 matched), so each realtime feed can only be joined to its own source's schedule.
+- 2026-11-27 Save a static schedule only when its SHA-256 changes, checked daily: schedules change a few times a year, and each day's realtime data must join to the schedule active that day.
+- 2026-11-27 Static archiver reuses the realtime pipeline (raw/ + atomic rename + the same S3 uploader) instead of its own upload path: one mechanism to trust and monitor.
+- 2026-11-27 Unit tests with pytest for the logger and static archiver: file naming, atomic writes, key redaction and change detection are exactly the bugs that would silently corrupt the archive.
 
 ## Tooling
 

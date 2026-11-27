@@ -1,0 +1,13 @@
+[Unit]
+Description=Archive static GTFS schedules when they change
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=transitlog
+WorkingDirectory=/opt/transit-logger
+EnvironmentFile=/etc/transit-logger.env
+Environment=DATA_DIR=/var/lib/transit-logger
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/transit-logger/fetch_static.py
