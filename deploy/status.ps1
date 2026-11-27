@@ -24,10 +24,24 @@ if ($ping -ne "Online") {
     exit 1
 }
 
-# Commands run on the server. No quotes inside: PowerShell 5.1 mangles them.
+# Commands run on the server. Passed as a JSON file: PowerShell 5.1 mangles
+# quotes in native-command arguments, and the CLI's shorthand chokes on "=".
+# iconv strips non-ASCII, which crashes the Windows AWS CLI when printed.
+$commands = @(
+    "systemctl is-active transit-logger transit-upload.timer transit-static.timer",
+    "echo '--- API keys present (values hidden):'",
+    "grep -oE '^API_[A-Z0-9_]+=.' /etc/transit-logger.env | sed 's/=.$/ yes/'",
+    "echo '--- logger:'",
+    "journalctl -u transit-logger -n 12 --no-pager -o cat | iconv -c -t ascii",
+    "echo '--- static schedules (last run):'",
+    "journalctl -u transit-static -n 5 --no-pager -o cat | iconv -c -t ascii",
+    "df -h /"
+)
+$paramFile = Join-Path $env:TEMP "transit-status-params.json"
+[IO.File]::WriteAllText($paramFile, (@{ commands = $commands } | ConvertTo-Json))
 $cmdId = aws ssm send-command --region $Region --instance-ids $instanceId `
     --document-name AWS-RunShellScript `
-    --parameters "commands=systemctl is-active transit-logger transit-upload.timer,journalctl -u transit-logger -n 15 --no-pager | iconv -c -t ascii,tail -n 5 /var/log/transit-bootstrap.log | iconv -c -t ascii,df -h /" `
+    --parameters "file://$paramFile" `
     --query Command.CommandId --output text
 Start-Sleep -Seconds 6
 Write-Host "`n--- on the server ---"
@@ -38,8 +52,8 @@ if ($Bucket) {
     $today = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
     Write-Host "`n--- S3: today's ($today UTC) snapshot counts ---"
     foreach ($feed in "bart_tripupdates", "act_tripupdates", "act_vehicles", "511_ac_tripupdates", "511_ac_vehiclepositions") {
-        $n = aws s3api list-objects-v2 --bucket $Bucket --prefix "raw/$feed/$today/" `
-            --query "length(Contents || ``[]``)" --output text
+        # s3 ls handles >1000 objects (list-objects-v2 returns one count per page).
+        $n = (aws s3 ls "s3://$Bucket/raw/$feed/$today/" --region $Region | Measure-Object -Line).Lines
         Write-Host ("{0,-26} {1}" -f $feed, $n)
     }
 }
