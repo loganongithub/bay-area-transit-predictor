@@ -31,6 +31,9 @@ One line per decision: what was chosen, over what, and why.
 - 2026-11-27 Save a static schedule only when its SHA-256 changes, checked daily: schedules change a few times a year, and each day's realtime data must join to the schedule active that day.
 - 2026-11-27 Static archiver reuses the realtime pipeline (raw/ + atomic rename + the same S3 uploader) instead of its own upload path: one mechanism to trust and monitor.
 - 2026-11-27 Unit tests with pytest for the logger and static archiver: file naming, atomic writes, key redaction and change detection are exactly the bugs that would silently corrupt the archive.
+- 2026-11-27 Flatten snapshots into Parquet (one file per feed per day) for analysis instead of re-parsing protobuf each time: columnar, compressed (zstd), typed, and loads straight into pandas. Raw .pb.gz stays the source of truth; Parquet can always be regenerated.
+- 2026-11-27 Extractor keeps unset protobuf fields as nulls, not 0, and keeps trips with zero stop predictions as one row: "missing" and "zero" mean different things for ground truth.
+- 2026-11-27 Explicit Parquet schemas: every day's file has identical columns and types even if a field is always null that day, so files concatenate cleanly.
 
 ## Tooling
 
